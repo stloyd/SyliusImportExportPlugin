@@ -6,14 +6,15 @@ namespace FriendsOfSylius\SyliusImportExportPlugin\Importer;
 
 use Doctrine\Common\Persistence\ObjectManager;
 use FriendsOfSylius\SyliusImportExportPlugin\Exception\ImporterException;
-use Port\Csv\CsvReaderFactory;
+use Port\Reader;
+use Port\Reader\ReaderFactory;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 
 abstract class AbstractImporter implements ImporterInterface
 {
-    /** @var CsvReaderFactory */
-    protected $csvReaderFactory;
+    /** @var ReaderFactory */
+    protected $readerFactory;
 
     /** @var FactoryInterface */
     protected $factory;
@@ -24,11 +25,8 @@ abstract class AbstractImporter implements ImporterInterface
     /** @var ObjectManager */
     protected $objectManager;
 
-    /** @var array */
-    protected $headerKeys;
-
     /**
-     * @param CsvReaderFactory $csvReaderFactory
+     * @param ReaderFactory $readerFactory
      * @param FactoryInterface $factory
      * @param RepositoryInterface $repository
      * @param ObjectManager $objectManager
@@ -36,19 +34,15 @@ abstract class AbstractImporter implements ImporterInterface
      * @throws ImporterException
      */
     public function __construct(
-        CsvReaderFactory $csvReaderFactory,
+        ReaderFactory $readerFactory,
         FactoryInterface $factory,
         RepositoryInterface $repository,
         ObjectManager $objectManager
     ) {
-        $this->csvReaderFactory = $csvReaderFactory;
+        $this->readerFactory = $readerFactory;
         $this->factory = $factory;
         $this->repository = $repository;
         $this->objectManager = $objectManager;
-
-        if (empty($this->headerKeys)) {
-            throw new ImporterException('The "headerKeys" property is not set on the concrete class');
-        }
     }
 
     /**
@@ -58,19 +52,23 @@ abstract class AbstractImporter implements ImporterInterface
      */
     public function import(string $fileName): void
     {
-        $csvReader = $this->csvReaderFactory->getReader(new \SplFileObject($fileName));
+        $reader = $this->readerFactory->getReader(new \SplFileObject($fileName));
 
-        $missingHeaders = array_diff($this->headerKeys, $csvReader->getColumnHeaders());
-        if (!empty($missingHeaders)) {
-            throw new ImporterException('Missing expected headers: ' . implode(', ', $missingHeaders));
-        }
+        $this->assertKeys($reader);
 
-        foreach ($csvReader as $row) {
+        foreach ($reader as $row) {
             $this->createOrUpdateObject($row);
         }
 
         $this->objectManager->flush();
     }
+
+    /**
+     * @param Reader $reader
+     *
+     * @throws ImporterException
+     */
+    abstract protected function assertKeys(Reader $reader);
 
     /**
      * @param array $row

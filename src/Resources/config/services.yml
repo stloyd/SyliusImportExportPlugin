@@ -10,6 +10,11 @@ services:
         arguments:
             - 0
 
+    sylius.factory.excel_reader:
+        class: Port\Excel\ExcelReaderFactory
+        arguments:
+            - 1
+
     sylius.controller.import_data:
         class: FriendsOfSylius\SyliusImportExportPlugin\Controller\ImportDataController
         arguments:
@@ -27,6 +32,16 @@ services:
         tags:
             - { name: sylius.importer, type: payment_method, format: csv }
 
+    sylius.importer.payment_methods.excel:
+        class: FriendsOfSylius\SyliusImportExportPlugin\Importer\PaymentMethodsImporter
+        arguments:
+            - "@sylius.factory.excel_reader"
+            - "@sylius.factory.payment_method"
+            - "@sylius.repository.payment_method"
+            - "@sylius.manager.payment_method"
+        tags:
+            - { name: sylius.importer, type: payment_method, format: excel }
+
     sylius.importer.tax_categories.csv:
         class: FriendsOfSylius\SyliusImportExportPlugin\Importer\TaxCategoriesImporter
         arguments:
@@ -36,3 +51,13 @@ services:
             - "@sylius.manager.tax_category"
         tags:
             - { name: sylius.importer, type: tax_category, format: csv }
+
+    sylius.importer.tax_categories.excel:
+        class: FriendsOfSylius\SyliusImportExportPlugin\Importer\TaxCategoriesImporter
+        arguments:
+            - "@sylius.factory.excel_reader"
+            - "@sylius.factory.tax_category"
+            - "@sylius.repository.tax_category"
+            - "@sylius.manager.tax_category"
+        tags:
+            - { name: sylius.importer, type: tax_category, format: excel }

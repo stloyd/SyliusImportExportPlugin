@@ -4,12 +4,29 @@ declare(strict_types=1);
 
 namespace FriendsOfSylius\SyliusImportExportPlugin\Importer;
 
+use FriendsOfSylius\SyliusImportExportPlugin\Exception\ImporterException;
+use Port\Reader;
 use Sylius\Component\Taxation\Model\TaxCategoryInterface;
 
 final class TaxCategoriesImporter extends AbstractImporter
 {
     /** @var array */
-    protected $headerKeys = ['Code', 'Name', 'Description'];
+    private $headerKeys = ['Code', 'Name', 'Description'];
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function assertKeys(Reader $reader)
+    {
+        if (!method_exists($reader, 'getColumnHeaders')) {
+            throw new ImporterException('Missing "getColumnHeaders" method on reader');
+        }
+
+        $missingHeaders = array_diff($this->headerKeys, $reader->getColumnHeaders());
+        if (!empty($missingHeaders)) {
+            throw new ImporterException('Missing expected headers: ' . implode(', ', $missingHeaders));
+        }
+    }
 
     /**
      * {@inheritdoc}

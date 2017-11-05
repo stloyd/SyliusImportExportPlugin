@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FriendsOfSylius\SyliusImportExportPlugin\Importer;
 
 use FriendsOfSylius\SyliusImportExportPlugin\Exception\ImporterException;
+use Port\Reader;
 use Sylius\Component\Core\Factory\PaymentMethodFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 
@@ -14,7 +15,22 @@ final class PaymentMethodsImporter extends AbstractImporter
     protected $factory;
 
     /** @var array */
-    protected $headerKeys = ['Code', 'Gateway', 'Name', 'Instructions'];
+    private $headerKeys = ['Code', 'Gateway', 'Name', 'Instructions'];
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function assertKeys(Reader $reader)
+    {
+        if (!method_exists($reader, 'getColumnHeaders')) {
+            throw new ImporterException('Missing "getColumnHeaders" method on reader');
+        }
+
+        $missingHeaders = array_diff($this->headerKeys, $reader->getColumnHeaders());
+        if (!empty($missingHeaders)) {
+            throw new ImporterException('Missing expected headers: ' . implode(', ', $missingHeaders));
+        }
+    }
 
     /**
      * {@inheritdoc}
